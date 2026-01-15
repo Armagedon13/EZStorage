@@ -127,7 +127,7 @@ public class TileEntityStorageCore extends TileEntity {
         int maxItems = 0;
         inventory.maxItems = 0;
         this.hasCraftBox = false;
-        var multiblock = new HashSet<BlockRef>();
+        multiblock = new HashSet<BlockRef>();
         BlockRef ref = new BlockRef(this);
         multiblock.add(ref);
         getValidNeighbors(ref, entity);
@@ -140,7 +140,6 @@ public class TileEntityStorageCore extends TileEntity {
             return;
         }
         inventory.maxItems = maxItems;
-        this.multiblock = multiblock;
         this.worldObj.markBlockForUpdate(xCoord, yCoord, zCoord);
     }
 
