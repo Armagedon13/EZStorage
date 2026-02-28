@@ -13,13 +13,8 @@ import com.zerofall.ezstorage.gui.GuiStorageCore;
 import codechicken.nei.api.INEIGuiAdapter;
 import codechicken.nei.recipe.StackInfo;
 
-/**
- * Registers EZStorage GUIs with NEI so that:
- * - Dragging an item from the NEI panel onto the search box fills it with the item name.
- * - The NEI item panel does not overlap the EZStorage scrollbar area.
- *
- * Registered via API.registerNEIGuiHandler() in EZNEIPlugin (called by NEI via @cpw.mods.fml.common.Optional).
- */
+// maybe i can put it in a NEI folder but well
+// maybe i can can implement it differently but im tired
 public class EZNEIHandler extends INEIGuiAdapter {
 
     @Override
@@ -34,7 +29,6 @@ public class EZNEIHandler extends INEIGuiAdapter {
         if (!ezGui.isOverTextField(mousex, mousey)) {
             return false;
         }
-        // Get the display name, stripping formatting codes (same as AE2's NEIGuiHandler)
         FluidStack fluidStack = StackInfo.isFluidContainer(draggedStack) ? null : StackInfo.getFluid(draggedStack);
         String displayName;
         if (fluidStack != null) {

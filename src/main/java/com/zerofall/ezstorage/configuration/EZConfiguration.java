@@ -43,10 +43,6 @@ public class EZConfiguration {
     @Config.DefaultBoolean(false)
     public static boolean experimentalContent;
 
-    // -------------------------------------------------------------------------
-    // GUI state persistence — saved automatically when the player changes them
-    // -------------------------------------------------------------------------
-
     @Config.Comment("Last used sort mode for the storage GUI. Values: AMOUNT, NAME, MOD")
     @Config.DefaultString("AMOUNT")
     public static String guiSortMode;

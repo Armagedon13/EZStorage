@@ -44,6 +44,8 @@ import codechicken.nei.api.ItemFilter;
 import cpw.mods.fml.common.Optional.Method;
 import cpw.mods.fml.common.registry.GameData;
 
+// maybe let the AI comment this code
+// if not good luck
 public class GuiStorageCore extends GuiContainer {
 
     protected static final ResourceLocation creativeInventoryTabs = new ResourceLocation(
@@ -51,20 +53,12 @@ public class GuiStorageCore extends GuiContainer {
     protected static final ResourceLocation searchBar = new ResourceLocation(
         "textures/gui/container/creative_inventory/tab_item_search.png");
 
-    // -------------------------------------------------------------------------
-    // Persistent state — survives GUI close/reopen within the same game session.
-    // Saved to disk via EZConfiguration so it also survives restarts.
-    // -------------------------------------------------------------------------
     protected static String searchText = "";
     protected static SearchMode currentSearchMode = SearchMode.AUTO;
     protected static SortMode currentSortMode = SortMode.AMOUNT;
     protected static SortOrder currentSortOrder = SortOrder.DESCENDING;
     protected static boolean saveSearch = false;
 
-    // -------------------------------------------------------------------------
-    // Side-button definitions — drawn manually at absolute screen coordinates
-    // (outside GuiContainer's xSize/ySize clip), exactly like AE2's left panel.
-    // -------------------------------------------------------------------------
     private static final int BTN_W = 16;
     private static final int BTN_H = 16;
     private static final int BTN_STRIDE = 20;
@@ -92,9 +86,6 @@ public class GuiStorageCore extends GuiContainer {
     private final SideButton[] sideButtons = { new SideButton(BTN_SORT_MODE), new SideButton(BTN_SORT_ORDER),
         new SideButton(BTN_SEARCH_MODE), new SideButton(BTN_SAVE_SEARCH) };
 
-    // -------------------------------------------------------------------------
-    // Instance fields
-    // -------------------------------------------------------------------------
     protected EZItemRenderer ezRenderer;
     protected int scrollRow = 0;
     protected float currentScroll;
@@ -106,16 +97,9 @@ public class GuiStorageCore extends GuiContainer {
     protected LocalDateTime inventoryUpdateTimestamp;
     protected boolean needFullUpdate;
 
-    // Tracks whether initGui was called as a re-init (e.g. returning from NEI
-    // recipe screen) vs. a fresh open. Prevents re-focusing the search field
-    // when the player presses R to look up a recipe and then closes it.
     private boolean guiWasOpen = false;
 
     private String lastNeiText = "";
-
-    // -------------------------------------------------------------------------
-    // Construction
-    // -------------------------------------------------------------------------
 
     public GuiStorageCore(EntityPlayer player, World world, int x, int y, int z) {
         this(new ContainerStorageCore(player), world, x, y, z);
@@ -127,10 +111,6 @@ public class GuiStorageCore extends GuiContainer {
         this.ySize = 222;
         loadSettingsFromConfig();
     }
-
-    // -------------------------------------------------------------------------
-    // initGui — called on open AND on every re-init (resize, sub-GUI close, etc.)
-    // -------------------------------------------------------------------------
 
     @Override
     public void initGui() {
@@ -155,16 +135,12 @@ public class GuiStorageCore extends GuiContainer {
             if (!saveSearch) searchText = "";
         }
 
-        // Only auto-focus on the very first open, not on re-inits (returning
-        // from the NEI recipe screen triggers initGui again).
         if (!guiWasOpen) {
             boolean shouldFocus = (currentSearchMode == SearchMode.AUTO || currentSearchMode == SearchMode.NEI_SYNC);
             this.searchField.setFocused(shouldFocus);
             guiWasOpen = true;
         }
-        // else: keep whatever focus state was already set
 
-        // Position side buttons — absolute coords, left of GUI (guiLeft - BTN_W - 2)
         int bx = this.guiLeft - BTN_W - 2;
         int by = this.guiTop + 8;
         for (int i = 0; i < sideButtons.length; i++) {
@@ -172,7 +148,6 @@ public class GuiStorageCore extends GuiContainer {
             sideButtons[i].y = by + i * BTN_STRIDE;
         }
 
-        // Run an initial filter pass so the list is populated when the GUI opens
         updateFilteredItems(true);
     }
 
@@ -186,17 +161,9 @@ public class GuiStorageCore extends GuiContainer {
         saveSettingsToConfig();
     }
 
-    // -------------------------------------------------------------------------
-    // Inventory accessor
-    // -------------------------------------------------------------------------
-
     public EZInventory getInventory() {
         return ((ContainerStorageCore) inventorySlots).inventory;
     }
-
-    // -------------------------------------------------------------------------
-    // IDropToFillTextField — called by EZNEIHandler when an item is dragged onto us
-    // -------------------------------------------------------------------------
 
     public boolean isOverTextField(int mousex, int mousey) {
         int fx = this.searchField.xPosition;
@@ -214,6 +181,11 @@ public class GuiStorageCore extends GuiContainer {
             currentScroll = 0;
             scrollRow = 0;
             updateFilteredItems(true);
+            if (ModIds.NEI.isLoaded()
+                && (currentSearchMode == SearchMode.NEI_SYNC || currentSearchMode == SearchMode.NEI_STANDARD)) {
+                setNeiSearchText(displayName);
+                lastNeiText = displayName;
+            }
         }
     }
 
@@ -273,10 +245,6 @@ public class GuiStorageCore extends GuiContainer {
         return true;
     }
 
-    // -------------------------------------------------------------------------
-    // Button click dispatch
-    // -------------------------------------------------------------------------
-
     private void handleButtonClick(SideButton btn) {
         switch (btn.id) {
             case BTN_SORT_MODE:
@@ -314,10 +282,6 @@ public class GuiStorageCore extends GuiContainer {
                 net.minecraft.client.audio.PositionedSoundRecord
                     .func_147674_a(new ResourceLocation("gui.button.press"), 1.0f));
     }
-
-    // -------------------------------------------------------------------------
-    // Rendering — buttons in drawScreen (absolute coords, no GL offset applied)
-    // -------------------------------------------------------------------------
 
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
@@ -449,10 +413,6 @@ public class GuiStorageCore extends GuiContainer {
         this.drawTexturedModalRect(i1, k + (int) ((float) (l - k - 17) * this.currentScroll), 232, 0, 12, 15);
     }
 
-    // -------------------------------------------------------------------------
-    // Mouse input
-    // -------------------------------------------------------------------------
-
     @Override
     protected void mouseClicked(int mouseX, int mouseY, int mouseButton) {
         // Side buttons (outside GuiContainer bounds — handle before super)
@@ -465,10 +425,13 @@ public class GuiStorageCore extends GuiContainer {
             }
         }
 
-        // Search field focus + right-click clear
         boolean wantFocus;
         if (isOverSearchField(mouseX, mouseY)) {
-            if (mouseButton == 1) { // Right click to clear
+            ItemStack heldItem = this.mc.thePlayer.inventory.getItemStack();
+            if (heldItem != null && (mouseButton == 0 || mouseButton == 1)) { // Clicked field with item
+                String displayName = EnumChatFormatting.getTextWithoutFormattingCodes(heldItem.getDisplayName());
+                setTextFieldValue(displayName, mouseX, mouseY, heldItem);
+            } else if (mouseButton == 1) { // Right click to clear
                 searchText = "";
                 this.searchField.setText("");
                 updateFilteredItems(true);
@@ -477,7 +440,7 @@ public class GuiStorageCore extends GuiContainer {
                     setNeiSearchText("");
                     lastNeiText = "";
                 }
-            } else if (mouseButton == 0) { // Left click to focus and place cursor
+            } else if (mouseButton == 0) {
                 this.searchField.mouseClicked(mouseX, mouseY, mouseButton);
             }
             wantFocus = true;
@@ -485,7 +448,6 @@ public class GuiStorageCore extends GuiContainer {
             wantFocus = false;
         }
 
-        // Item slot click
         Integer slot = getSlotAt(mouseX, mouseY);
         if (slot != null) {
             int mode = GuiScreen.isShiftKeyDown() ? 1 : 0;
@@ -569,10 +531,6 @@ public class GuiStorageCore extends GuiContainer {
         }
     }
 
-    // -------------------------------------------------------------------------
-    // Keyboard
-    // -------------------------------------------------------------------------
-
     @Override
     protected void keyTyped(char typedChar, int keyCode) {
         if (!this.checkHotbarKeys(keyCode)) {
@@ -590,10 +548,6 @@ public class GuiStorageCore extends GuiContainer {
             }
         }
     }
-
-    // -------------------------------------------------------------------------
-    // Screen update tick
-    // -------------------------------------------------------------------------
 
     @Override
     public void updateScreen() {
@@ -622,10 +576,6 @@ public class GuiStorageCore extends GuiContainer {
 
         super.updateScreen();
     }
-
-    // -------------------------------------------------------------------------
-    // Filtering & sorting
-    // -------------------------------------------------------------------------
 
     private void updateFilteredItems(boolean forceFullUpdate) {
         searchText = this.searchField.getText()
@@ -687,8 +637,6 @@ public class GuiStorageCore extends GuiContainer {
             filteredList.addAll(input);
             return;
         }
-        // AUTO and NEI_SYNC: delegate to NEI filter engine if available — supports @mod, #ore, etc.
-        // STANDARD and NEI_STANDARD: always use our own vanilla implementation.
         if ((currentSearchMode == SearchMode.AUTO || currentSearchMode == SearchMode.NEI_SYNC)
             && ModIds.NEI.isLoaded()) {
             filterItemsViaNei(text, input);
@@ -697,10 +645,6 @@ public class GuiStorageCore extends GuiContainer {
         }
     }
 
-    /**
-     * Vanilla search — searches the full tooltip (name + mod name + ore dict lines).
-     * Supports a simple "@" prefix to search by mod id only (e.g. "@thaumcraft").
-     */
     private void filterItemsViaVanilla(String raw, List<ItemStack> input) {
         String text = raw.toLowerCase();
         boolean modFilter = text.startsWith("@");
@@ -711,7 +655,6 @@ public class GuiStorageCore extends GuiContainer {
         }
         for (ItemStack group : input) {
             if (modFilter) {
-                // Match against the mod id portion of the registry name or CreatorModId
                 String modId = "";
                 String regName = GameData.getItemRegistry()
                     .getNameForObject(group.getItem());
@@ -722,7 +665,6 @@ public class GuiStorageCore extends GuiContainer {
                     .contains(query)) {
                     filteredList.add(group);
                 } else {
-                    // Fallback to tooltip mod name just in case (Waila/NEI adds it sometimes)
                     List<String> lines = group.getTooltip(this.mc.thePlayer, false);
                     if (lines.size() > 0) {
                         String lastLine = EnumChatFormatting.getTextWithoutFormattingCodes(lines.get(lines.size() - 1))
@@ -733,7 +675,6 @@ public class GuiStorageCore extends GuiContainer {
                     }
                 }
             } else {
-                // Full tooltip search (name + mod name line + ore dict, etc.)
                 List<String> lines = group.getTooltip(this.mc.thePlayer, this.mc.gameSettings.advancedItemTooltips);
                 for (String line : lines) {
                     if (EnumChatFormatting.getTextWithoutFormattingCodes(line)
@@ -747,10 +688,6 @@ public class GuiStorageCore extends GuiContainer {
         }
     }
 
-    /**
-     * NEI filter engine — supports @mod, #oredict, $tab, ^tooltip prefixes natively.
-     * Only called when NEI is loaded and mode is AUTO.
-     */
     @Method(modid = "NotEnoughItems")
     private void filterItemsViaNei(String text, List<ItemStack> input) {
         if (text.isEmpty()) {
@@ -784,10 +721,6 @@ public class GuiStorageCore extends GuiContainer {
         mouseOverItem = null;
     }
 
-    // -------------------------------------------------------------------------
-    // Config persistence — stored in EZConfiguration (forge config file)
-    // -------------------------------------------------------------------------
-
     private static void loadSettingsFromConfig() {
         try {
             currentSortMode = SortMode.valueOf(EZConfiguration.guiSortMode);
@@ -818,10 +751,6 @@ public class GuiStorageCore extends GuiContainer {
         EZConfiguration.guiSearchText = saveSearch ? searchText : "";
         EZConfiguration.save();
     }
-
-    // -------------------------------------------------------------------------
-    // Misc
-    // -------------------------------------------------------------------------
 
     protected ResourceLocation getBackground() {
         return new ResourceLocation(Reference.MOD_ID, "textures/gui/storageScrollGui.png");

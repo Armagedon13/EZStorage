@@ -2,8 +2,6 @@ package com.zerofall.ezstorage.enums;
 
 public enum SearchMode {
 
-    // Uses NEI filter engine if available (supports @mod, #ore, ^tooltip, $tab prefixes).
-    // Falls back to STANDARD if NEI is not loaded.
     AUTO(0, "hud.msg.ezstorage.search.mode.auto"),
     NEI_SYNC(1, "hud.msg.ezstorage.search.mode.nei_sync"),
     NEI_STANDARD(2, "hud.msg.ezstorage.search.mode.nei_standard"),

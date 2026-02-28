@@ -28,6 +28,19 @@ public class ContainerStorageCoreCrafting extends ContainerStorageCore {
     public ContainerStorageCoreCrafting(EntityPlayer player, World world, EZInventory inventory) {
         this(player, world);
         this.inventory = inventory;
+
+        if (this.inventory != null && this.inventory.craftMatrix != null) {
+            boolean loaded = false;
+            for (int k = 0; k < 9; k++) {
+                if (this.inventory.craftMatrix[k] != null) {
+                    this.craftMatrix.setInventorySlotContents(k, this.inventory.craftMatrix[k]);
+                    loaded = true;
+                }
+            }
+            if (loaded) {
+                this.onCraftMatrixChanged(this.craftMatrix);
+            }
+        }
     }
 
     public ContainerStorageCoreCrafting(EntityPlayer player, World world) {
@@ -42,6 +55,7 @@ public class ContainerStorageCoreCrafting extends ContainerStorageCore {
                 this.addSlotToContainer(new Slot(this.craftMatrix, j + i * 3, 44 + j * 18, 114 + i * 18));
             }
         }
+
         this.onCraftMatrixChanged(this.craftMatrix);
     }
 
@@ -335,8 +349,28 @@ public class ContainerStorageCoreCrafting extends ContainerStorageCore {
 
     @Override
     public void onContainerClosed(EntityPlayer playerIn) {
-        clearGrid(playerIn);
+        saveGrid();
         super.onContainerClosed(playerIn);
+    }
+
+    public void saveGrid() {
+        if (this.inventory != null) {
+            if (this.inventory.craftMatrix == null) {
+                this.inventory.craftMatrix = new ItemStack[9];
+            }
+            boolean hasChanges = false;
+            for (int i = 0; i < 9; i++) {
+                ItemStack current = this.craftMatrix.getStackInSlot(i);
+                if (!EZInventory.stacksEqual(this.inventory.craftMatrix[i], current)) {
+                    hasChanges = true;
+                }
+                this.inventory.craftMatrix[i] = current;
+            }
+            if (hasChanges) {
+                this.inventory.setHasChanges();
+                EZInventoryManager.saveInventory(this.inventory);
+            }
+        }
     }
 
     public void clearGrid(EntityPlayer playerIn) {
